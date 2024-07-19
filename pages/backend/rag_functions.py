@@ -25,7 +25,7 @@ from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader
 import tempfile
 from tempfile import NamedTemporaryFile
 import re
-import replicate
+
 
 store = {}
 
