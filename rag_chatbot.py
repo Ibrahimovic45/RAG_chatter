@@ -25,7 +25,7 @@ with st.expander("Setting the LLM"):
     with st.form("setting"):
         row_1 = st.columns(3)
         with row_1[0]:
-            token = st.text_input("Hugging Face Token", type="password", value="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")
+            token = st.text_input("Chatgroq Token", type="password", value="")
 
         with row_1[1]:
             llm_model = st.text_input("LLM model", value="meta-llama/Meta-Llama-3-8B-Instruct") #tiiuae/falcon-7b-instruct
