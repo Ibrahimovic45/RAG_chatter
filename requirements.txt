@@ -1,0 +1,10 @@
+
+streamlit 
+langchain 
+faiss-cpu 
+sentence-transformers==2.2.2 
+InstructorEmbedding 
+pypdf
+langchain_community
+langchain_groq
+localtunnel
