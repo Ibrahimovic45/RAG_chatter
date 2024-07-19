@@ -27,7 +27,6 @@ from tempfile import NamedTemporaryFile
 import re
 import replicate
 
-os.environ["REPLICATE_API_TOKEN"] = "r8_1AX3eBpBOQNYsKsbWnz2FNs4BZIJN3h1YEtM5"
 store = {}
 
 def read_pdf(file):
@@ -151,8 +150,8 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 
 @st.cache_resource
-def Llm():
-  os.environ["GROQ_API_KEY"] = "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"
+def Llm(token):
+  os.environ["GROQ_API_KEY"] = token
   llm = ChatGroq(model="llama3-8b-8192",
   temperature=0.7,
   max_tokens=2000
@@ -191,7 +190,7 @@ def prepare_rag_llm(
     #temperature=0.7,
     #max_tokens=2000
     #)
-    llm = Llm()
+    llm = Llm(token)
 
     #memory = ConversationBufferWindowMemory(
         #k=2,
