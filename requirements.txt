@@ -7,4 +7,3 @@ InstructorEmbedding
 pypdf
 langchain_community
 langchain_groq
-localtunnel
