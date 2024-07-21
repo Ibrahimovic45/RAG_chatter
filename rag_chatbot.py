@@ -13,7 +13,7 @@ with st.expander("Choose your source"):
             vector_store_list = os.listdir("vector store/")
             default_choice = (
                 vector_store_list.index('Harry_Potter_1')
-                if 'DAVIDSON' in vector_store_list
+                if 'Harry_Potter_1' in vector_store_list
                 else 0
             )
             existing_vector_store = st.selectbox("Vector Store", vector_store_list, default_choice)
