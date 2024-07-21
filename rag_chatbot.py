@@ -23,14 +23,14 @@ with st.expander("Choose your source"):
 with st.expander("Setting the LLM"):
     st.markdown("This page is used to have a chat with the uploaded documents")
     with st.form("setting"):
-        row_1 = st.columns(3)
-        with row_1[0]:
-            token = st.text_input("Chatgroq Token", type="password", value="")
+        row_1 = st.columns(2)
+        #with row_1[0]:
+            #token = st.text_input("Chatgroq Token", type="password", value="")
 
-        with row_1[1]:
+        with row_1[0]:
             llm_model = st.text_input("LLM model", value="meta-llama/Meta-Llama-3-8B-Instruct") #tiiuae/falcon-7b-instruct
 
-        with row_1[2]:
+        with row_1[1]:
             instruct_embeddings = st.text_input("Instruct Embeddings", value="sentence-transformers/all-mpnet-base-v2")#hkunlp/instructor-xl
 
         row_2 = st.columns(2)#3
@@ -60,10 +60,9 @@ if "store" not in st.session_state:
 if "conversation" not in st.session_state:
     st.session_state.conversation = None
 
-if token:
-  st.session_state.conversation = rag_functions.prepare_rag_llm(
-        token, llm_model, instruct_embeddings, existing_vector_store, temperature, max_length
-    )
+
+st.session_state.conversation = rag_functions.prepare_rag_llm(llm_model,
+ instruct_embeddings, existing_vector_store, temperature, max_length)
   #st.session_state.conversation = rag_functions.create_chatbot(basic_llm, basic_loaded_db)
 
 # Chat history
@@ -88,7 +87,7 @@ if question := st.chat_input("Ask a question"):
         st.markdown(question)
 
     # Answer the question
-    answer, doc_source = rag_functions.generate_answer(question, token)
+    answer, doc_source = rag_functions.generate_answer(question)
     with st.chat_message("assistant"):
         st.write(answer)
     # Append assistant answer to history
