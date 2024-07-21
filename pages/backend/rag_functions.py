@@ -29,7 +29,7 @@ import random
 
 
 store = {}
-
+session_id = str(random.randint(100,1000))
 
 def read_pdf(file):
     #document = ""
@@ -288,7 +288,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 def generate_answer(question):
     response = st.session_state.conversation.invoke({"input": question},
     config={
-    "configurable": {"session_id": str(random.randint(100,1000))}})
+    "configurable": {"session_id": session_id}})
     answer = response["answer"]
     explanation = response["context"]
     doc_source = {}
