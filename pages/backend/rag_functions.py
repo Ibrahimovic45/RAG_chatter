@@ -29,7 +29,7 @@ import random
 
 
 store = {}
-token = st.secrets["token"]
+
 
 def read_pdf(file):
     #document = ""
@@ -152,8 +152,8 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 
 @st.cache_resource(ttl=300, max_entries=1)
-def Llm(token):
-  os.environ["GROQ_API_KEY"] = token
+def Llm():
+  os.environ["GROQ_API_KEY"] = st.secrets["token"]
   llm = ChatGroq(model="llama3-8b-8192",
   temperature=0.7,
   max_tokens=2000
@@ -164,7 +164,7 @@ def Llm(token):
 #### Tis function to cache
 #@st.cache_resource
 def prepare_rag_llm(
-    token, llm_model, instruct_embeddings, vector_store_list, temperature, max_length
+    llm_model, instruct_embeddings, vector_store_list, temperature, max_length
 ): 
     # Load embeddings instructor
     instructor_embeddings = HuggingFaceInstructEmbeddings(
@@ -192,7 +192,7 @@ def prepare_rag_llm(
     #temperature=0.7,
     #max_tokens=2000
     #)
-    llm = Llm(token)
+    llm = Llm()
 
     #memory = ConversationBufferWindowMemory(
         #k=2,
@@ -285,49 +285,49 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
             store[session_id] = ChatMessageHistory()
         return store[session_id]
 
-def generate_answer(question, token):
+def generate_answer(question):
     answer = "An error has occured"
 
-    if token == "":
-        answer = "Insert the token"
-        doc_source = ["no source"]
-    else:
-        #response = st.session_state.conversation({"question": question})
-        response = st.session_state.conversation.invoke({"input": question},
-        config={
-        "configurable": {"session_id": str(random.randint(100,1000))}})
-        #config={
-        #"configurable": {"session_id": "abc123"}
-        #},  # constructs a key "abc123" in `store`.
-        
-        #answer = response.get("answer").split("Helpful Answer:")[-1].strip()
-        answer = response["answer"]
-        #explanation = response.get("source_documents", [])
-        explanation = response["context"]
+    #if token == "":
+        #answer = "Insert the token"
+        #doc_source = ["no source"]
+    #else:
+	#response = st.session_state.conversation({"question": question})
+	response = st.session_state.conversation.invoke({"input": question},
+	config={
+	"configurable": {"session_id": str(random.randint(100,1000))}})
+	#config={
+	#"configurable": {"session_id": "abc123"}
+	#},  # constructs a key "abc123" in `store`.
+	
+	#answer = response.get("answer").split("Helpful Answer:")[-1].strip()
+	answer = response["answer"]
+	#explanation = response.get("source_documents", [])
+	explanation = response["context"]
 
-        # Initialize an empty list to hold tuples of document text and its corresponding page number
-        #doc_info = []
-        
-        #for d in explanation:
-            # Use regular expression to find 'Page {number}:' patterns
-            #page_numbers = re.findall(r"Page (\d+):", d.page_content)
-            
-            # It's possible to have multiple page references in a single chunk; handle accordingly
-            #if page_numbers:
-                #for page_num in page_numbers:
-                    # Splitting the document on "Page X:" to get the text following the page number
-                    #parts = d.page_content.split(f"Page {page_num}:")
-                    #if len(parts) > 1:
-                        # Pairing each segment of text with the identified page number
-                        #doc_info.append((parts[1].strip(), page_num))
-            #else:
-                # If no specific page number is found, add the whole content with 'Unknown Page'
-                #doc_info.append((d.page_content.strip(), "Unknown Page"))
+	# Initialize an empty list to hold tuples of document text and its corresponding page number
+	#doc_info = []
+	
+	#for d in explanation:
+		# Use regular expression to find 'Page {number}:' patterns
+		#page_numbers = re.findall(r"Page (\d+):", d.page_content)
+		
+		# It's possible to have multiple page references in a single chunk; handle accordingly
+		#if page_numbers:
+			#for page_num in page_numbers:
+				# Splitting the document on "Page X:" to get the text following the page number
+				#parts = d.page_content.split(f"Page {page_num}:")
+				#if len(parts) > 1:
+					# Pairing each segment of text with the identified page number
+					#doc_info.append((parts[1].strip(), page_num))
+		#else:
+			# If no specific page number is found, add the whole content with 'Unknown Page'
+			#doc_info.append((d.page_content.strip(), "Unknown Page"))
 
-   
-        #doc_source = [d.page_content for d in explanation]
-        doc_source = {}
-        for d in explanation:
-          doc_source["Page " + str(d.metadata["page"])] = [d.page_content, d.metadata["source"]]
+
+	#doc_source = [d.page_content for d in explanation]
+	doc_source = {}
+	for d in explanation:
+	  doc_source["Page " + str(d.metadata["page"])] = [d.page_content, d.metadata["source"]]
 
     return answer, doc_source 
