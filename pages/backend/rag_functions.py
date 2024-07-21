@@ -25,6 +25,7 @@ from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader
 import tempfile
 from tempfile import NamedTemporaryFile
 import re
+import random
 
 
 store = {}
@@ -149,9 +150,9 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
-@st.cache_resource
+@st.cache_resource(ttl=300, max_entries=1)
 def Llm(token):
-  os.environ["GROQ_API_KEY"] = token
+  #os.environ["GROQ_API_KEY"] = token
   llm = ChatGroq(model="llama3-8b-8192",
   temperature=0.7,
   max_tokens=2000
@@ -287,13 +288,13 @@ def generate_answer(question, token):
     answer = "An error has occured"
 
     if token == "":
-        answer = "Insert the Hugging Face token"
+        answer = "Insert the token"
         doc_source = ["no source"]
     else:
         #response = st.session_state.conversation({"question": question})
         response = st.session_state.conversation.invoke({"input": question},
         config={
-        "configurable": {"session_id": "abc123"}})
+        "configurable": {"session_id": str(random.randint(100,1000))}})
         #config={
         #"configurable": {"session_id": "abc123"}
         #},  # constructs a key "abc123" in `store`.
