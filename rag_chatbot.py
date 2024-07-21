@@ -12,7 +12,7 @@ with st.expander("Choose your source"):
   with row_1[0]:
             vector_store_list = os.listdir("vector store/")
             default_choice = (
-                vector_store_list.index('DAVIDSON')
+                vector_store_list.index('Harry_Potter_1')
                 if 'DAVIDSON' in vector_store_list
                 else 0
             )
