@@ -113,7 +113,7 @@ def split_doc(document, chunk_size, chunk_overlap):
     #)
 
   #return instructor_embeddings
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, max_entries=1)
 def retriever(existing_vector_store, instructor_embeddings):
     load_db = FAISS.load_local(
                 "vector store/" + existing_vector_store,
