@@ -122,7 +122,7 @@ def retriever(existing_vector_store, instructor_embeddings):
     )
     return load_db
 
-def embedding_storing(model_name, split, create_new_vs, existing _vector_store, new_vs_name):
+def embedding_storing(model_name, split, create_new_vs, existing_vector_store, new_vs_name):
     
     if create_new_vs is not None:
         # Load embeddings instructor
