@@ -113,7 +113,7 @@ def split_doc(document, chunk_size, chunk_overlap):
     #)
 
   #return instructor_embeddings
-
+@st.cache_data(ttl=300)
 def retriever(existing_vector_store, instructor_embeddings):
     load_db = FAISS.load_local(
                 "vector store/" + existing_vector_store,
@@ -122,7 +122,7 @@ def retriever(existing_vector_store, instructor_embeddings):
     )
     return load_db
 
-def embedding_storing(model_name, split, create_new_vs, new_vs_name):
+def embedding_storing(model_name, split, create_new_vs, existing _vector_store, new_vs_name):
     
     if create_new_vs is not None:
         # Load embeddings instructor
@@ -139,7 +139,7 @@ def embedding_storing(model_name, split, create_new_vs, new_vs_name):
             db.save_local("vector store/" + new_vs_name)
         else:
             # Load existing db
-            load_db = retriever()
+            load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
             load_db.merge_from(db)
             load_db.save_local("vector store/" + new_vs_name)
