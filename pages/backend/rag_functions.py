@@ -286,48 +286,13 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         return store[session_id]
 
 def generate_answer(question):
-    answer = "An error has occured"
-
-    #if token == "":
-        #answer = "Insert the token"
-        #doc_source = ["no source"]
-    #else:
-	#response = st.session_state.conversation({"question": question})
-	response = st.session_state.conversation.invoke({"input": question},
-	config={
-	"configurable": {"session_id": str(random.randint(100,1000))}})
-	#config={
-	#"configurable": {"session_id": "abc123"}
-	#},  # constructs a key "abc123" in `store`.
-	
-	#answer = response.get("answer").split("Helpful Answer:")[-1].strip()
-	answer = response["answer"]
-	#explanation = response.get("source_documents", [])
-	explanation = response["context"]
-
-	# Initialize an empty list to hold tuples of document text and its corresponding page number
-	#doc_info = []
-	
-	#for d in explanation:
-		# Use regular expression to find 'Page {number}:' patterns
-		#page_numbers = re.findall(r"Page (\d+):", d.page_content)
-		
-		# It's possible to have multiple page references in a single chunk; handle accordingly
-		#if page_numbers:
-			#for page_num in page_numbers:
-				# Splitting the document on "Page X:" to get the text following the page number
-				#parts = d.page_content.split(f"Page {page_num}:")
-				#if len(parts) > 1:
-					# Pairing each segment of text with the identified page number
-					#doc_info.append((parts[1].strip(), page_num))
-		#else:
-			# If no specific page number is found, add the whole content with 'Unknown Page'
-			#doc_info.append((d.page_content.strip(), "Unknown Page"))
-
-
-	#doc_source = [d.page_content for d in explanation]
-	doc_source = {}
-	for d in explanation:
-	  doc_source["Page " + str(d.metadata["page"])] = [d.page_content, d.metadata["source"]]
-
+    response = st.session_state.conversation.invoke({"input": question},
+    config={
+    "configurable": {"session_id": str(random.randint(100,1000))}})
+    answer = response["answer"]
+    explanation = response["context"]
+    doc_source = {}
+    for d in explanation:
+      doc_source["Page " + str(d.metadata["page"])] = [d.page_content, d.metadata["source"]]
+    
     return answer, doc_source 
