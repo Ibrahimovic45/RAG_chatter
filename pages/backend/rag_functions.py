@@ -29,6 +29,7 @@ import random
 
 
 store = {}
+token = st.secrets["token"]
 
 def read_pdf(file):
     #document = ""
@@ -152,7 +153,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 @st.cache_resource(ttl=300, max_entries=1)
 def Llm(token):
-  #os.environ["GROQ_API_KEY"] = token
+  os.environ["GROQ_API_KEY"] = token
   llm = ChatGroq(model="llama3-8b-8192",
   temperature=0.7,
   max_tokens=2000
