@@ -27,9 +27,7 @@ from tempfile import NamedTemporaryFile
 import re
 import random
 
-
 store = {}
-session_id = str(random.randint(100,1000))
 
 def read_pdf(file):
     #document = ""
@@ -114,10 +112,10 @@ def split_doc(document, chunk_size, chunk_overlap):
 
   #return instructor_embeddings
 @st.cache_data(ttl=300, max_entries=1)
-def retriever(existing_vector_store, instructor_embeddings):
+def retriever(existing_vector_store, _instructor_embeddings):
     load_db = FAISS.load_local(
                 "vector store/" + existing_vector_store,
-                instructor_embeddings,
+                _instructor_embeddings,
                 allow_dangerous_deserialization=True
     )
     return load_db
@@ -139,10 +137,10 @@ def embedding_storing(model_name, split, create_new_vs, existing_vector_store, n
             db.save_local("vector store/" + new_vs_name)
         else:
             # Load existing db
-            load_db = retriever(existing_vector_store, instructor_embeddings)
+            st.session_state.load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
-            load_db.merge_from(db)
-            load_db.save_local("vector store/" + new_vs_name)
+            st.session_state.load_db.merge_from(db)
+            st.session_state.load_db.save_local("vector store/" + new_vs_name)
 
         st.success("The document has been saved.")
 
@@ -177,9 +175,10 @@ def prepare_rag_llm(
     #instructor_embeddings = Instructor()
 
     # Load db
-    loaded_db = FAISS.load_local(
-        f"vector store/{vector_store_list}", instructor_embeddings, allow_dangerous_deserialization=True
-    )
+    #loaded_db = FAISS.load_local(
+        #f"vector store/{vector_store_list}", instructor_embeddings, allow_dangerous_deserialization=True
+    #)
+    st.session_state.loaded_db = retriever(vector_store_list, instructor_embeddings)
 
     # Load LLM
     #llm = HuggingFaceHub(
@@ -240,7 +239,7 @@ def prepare_rag_llm(
         ]
     )
     history_aware_retriever = create_history_aware_retriever(
-        llm, loaded_db.as_retriever(), contextualize_q_prompt
+        llm, st.session_state.loaded_db.as_retriever(), contextualize_q_prompt
     )
 
 
@@ -268,7 +267,7 @@ def prepare_rag_llm(
 
 
     ### Statefully manage chat history ###
-    store = {}
+    #store = {}
 
     rag_chain = RunnableWithMessageHistory(
         rag_chain,
@@ -284,6 +283,7 @@ def prepare_rag_llm(
 
     return rag_chain
 
+
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
         if session_id not in store:
             store[session_id] = ChatMessageHistory()
@@ -292,7 +292,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 def generate_answer(question):
     response = st.session_state.conversation.invoke({"input": question},
     config={
-    "configurable": {"session_id": session_id}})
+    "configurable": {"session_id": st.session_state.session_id}})
     answer = response["answer"]
     explanation = response["context"]
     doc_source = {}
