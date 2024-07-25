@@ -1,9 +1,10 @@
 import streamlit as st
 import os
 from pages.backend import rag_functions
+import random
 
  ### Statefully manage chat history ###
-store = {}
+#store = {}
 
 st.title("Chatbot")
 
@@ -54,13 +55,13 @@ with st.expander("Setting the LLM"):
 
 # Prepare the LLM model
 
-if "store" not in st.session_state:
-    st.session_state.store = {}
+#if "store" not in st.session_state:
+    #st.session_state.store = {}
 
 if "conversation" not in st.session_state:
     st.session_state.conversation = None
 
-
+st.session_state.session_id = str(random.randint(100,1000))
 st.session_state.conversation = rag_functions.prepare_rag_llm(llm_model,
  instruct_embeddings, existing_vector_store, temperature, max_length)
   #st.session_state.conversation = rag_functions.create_chatbot(basic_llm, basic_loaded_db)
