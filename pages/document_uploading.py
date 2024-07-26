@@ -9,7 +9,7 @@ st.markdown("This page is used to upload the documents as the custom knowledge f
 
 with st.form("document_input"):
     
-    document = st.file_uploader("Knowledge Documents", type=['pdf', 'txt'], help=".pdf or .txt file")
+    document = st.file_uploader("Knowledge Documents", type=['pdf', 'txt'], help=".pdf or .txt file, less than 20MB preferred ")
 
     row_1 = st.columns([2, 1, 1])
     with row_1[0]:
