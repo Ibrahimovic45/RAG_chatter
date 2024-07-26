@@ -2,6 +2,7 @@
 streamlit 
 langchain 
 faiss-cpu 
+faiss-gpu
 sentence-transformers==2.2.2 
 InstructorEmbedding 
 pypdf
