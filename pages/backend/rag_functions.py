@@ -30,54 +30,11 @@ import random
 store = {}
 
 def read_pdf(file):
-    #document = ""
-
-    #reader = PdfReader(file)
-    #for page in reader.pages:
-      #document += str(reader.get_page_number(page))
-      #document += page.extract_text()
-
-
-
-
-   
-    #document = ""
-    
-    #reader = PdfReader(file)
-    
-    # Iterate through each page of the PDF
-    #for page_num in range(len(reader.pages)):
-        #page = reader.pages[page_num]  # Get a specific page by index
-        
-        # Attempt to extract text from the page
-        #page_text = page.extract_text()
-        #if page_text:   # If text extraction is successful
-            #page_text = page_text.strip()  # Remove leading/trailing whitespaces
-            #document += f"Page {page_num + 1}:\n{page_text}\n\n"
-        #else:
-            #document += f"Page {page_num + 1} has no text.\n\n"
-    
-    
-    #doc = []
-    #if files:
-      #temp_file = "./temp.pdf"
-      #with open(temp_file, "wb") as file:
-        #file.write(files.read())
-        #file_name = files.name
-      #loader = PyMuPDFLoader(temp_file)
-      #doc.extend(loader.load())
-
-    #docs = []
     bytes_data = file.read()
     with NamedTemporaryFile(delete=False) as tmp:  # open a named temporary file
       tmp.write(bytes_data)                      # write data from the uploaded file into it
       document = PyPDFLoader(tmp.name).load_and_split()        # <---- now it works!
     os.remove(tmp.name)                            # remove temp file
-
-    #with NamedTemporaryFile(dir='.', suffix='.pdf') as f:
-      #f.write(file.getbuffer())
-      #l#oader = PyPDFLoader(f.name)
-      #document = loader.load()
     return document
 
 
@@ -99,19 +56,7 @@ def split_doc(document, chunk_size, chunk_overlap):
 
     return split
 
-
-#@st.cache_resource
-#def Instructor():
-  #instructor_embeddings = HuggingFaceInstructEmbeddings(
-            #model_name=model_name, 
-        #) #, model_kwargs={"device":"cuda"}
-
-  #instructor_embeddings = Replicate(
-   #model = "replicate/all-mpnet-base-v2:b6b7585c9640cd7a9572c6e129c9549d79c9c31f0d3fdce7baac7c67ca38f305",
-    #)
-
-  #return instructor_embeddings
-@st.cache_data(ttl=300, max_entries=1)
+@st.cache_data(ttl=10, max_entries=5, show_spinner="Loading data...")
 def retriever(existing_vector_store, _instructor_embeddings):
     load_db = FAISS.load_local(
                 "vector store/" + existing_vector_store,
@@ -125,27 +70,24 @@ def embedding_storing(model_name, split, create_new_vs, existing_vector_store, n
     if create_new_vs is not None:
         # Load embeddings instructor
         instructor_embeddings = HuggingFaceInstructEmbeddings(
-            model_name=model_name, 
-        ) #, model_kwargs={"device":"cuda"}
-        #instructor_embeddings = Instructor()
+            model_name=model_name, model_kwargs={"device":"cuda"}
+        ) 
 
         # Implement embeddings
-        db = FAISS.from_documents(split, instructor_embeddings)
+        st.session_state.db = FAISS.from_documents(split, instructor_embeddings)
 
         if create_new_vs == True:
             # Save db
-            db.save_local("vector store/" + new_vs_name)
+            st.session_state.db.save_local("vector store/" + new_vs_name)                      
+            
         else:
             # Load existing db
             st.session_state.load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
-            st.session_state.load_db.merge_from(db)
+            st.session_state.load_db.merge_from(st.session_state.db)
             st.session_state.load_db.save_local("vector store/" + new_vs_name)
 
         st.success("The document has been saved.")
-
-
-
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
     if session_id not in store:
@@ -153,7 +95,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
-@st.cache_resource(ttl=300, max_entries=1)
+@st.cache_resource(ttl=10, max_entries=1, show_spinner="Loading model...")
 def Llm():
   os.environ["GROQ_API_KEY"] = st.secrets["token"]
   llm = ChatGroq(model="llama3-8b-8192",
@@ -163,66 +105,20 @@ def Llm():
   return llm
 
 
-#### Tis function to cache
 #@st.cache_resource
 def prepare_rag_llm(
     llm_model, instruct_embeddings, vector_store_list, temperature, max_length
 ): 
     # Load embeddings instructor
     instructor_embeddings = HuggingFaceInstructEmbeddings(
-        model_name=instruct_embeddings, 
-    ) #, model_kwargs={"device":"cuda"}
-    #instructor_embeddings = Instructor()
-
-    # Load db
-    #loaded_db = FAISS.load_local(
-        #f"vector store/{vector_store_list}", instructor_embeddings, allow_dangerous_deserialization=True
-    #)
+        model_name=instruct_embeddings, model_kwargs={"device":"cuda"}
+    )  
     st.session_state.loaded_db = retriever(vector_store_list, instructor_embeddings)
 
     # Load LLM
-    #llm = HuggingFaceHub(
-        #repo_id=llm_model,
-        #model_kwargs={"temperature": temperature, "max_length": max_length},
-        #huggingfacehub_api_token=token
-    #)
-
-
-    #os.environ["GROQ_API_KEY"] = "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"
-#
-
-    #llm = ChatGroq(model="llama3-8b-8192",
-    #temperature=0.7,
-    #max_tokens=2000
-    #)
-    llm = Llm()
-
-    #memory = ConversationBufferWindowMemory(
-        #k=2,
-        #memory_key="chat_history",
-        #output_key="answer",
-        #return_messages=True,
-    #)
-    #return llm, loaded_db
-
-#def create_chatbot(llm, loaded_db):
-    #memory = ConversationBufferWindowMemory(
-        #k=1,
-        #memory_key="chat_history",
-        #output_key="answer",
-        #return_messages=True,
-    #)
-    # Create the chatbot
-    #qa_conversation = ConversationalRetrievalChain.from_llm(
-        #llm=llm,
-        #chain_type="stuff",
-        #retriever=loaded_db.as_retriever(),
-        #return_source_documents=True,
-       # memory=memory,
-    #)
+    llm = Llm()   
     
-      # With history
-
+    # With history
     ### Contextualize question ###
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
@@ -241,7 +137,6 @@ def prepare_rag_llm(
     history_aware_retriever = create_history_aware_retriever(
         llm, st.session_state.loaded_db.as_retriever(), contextualize_q_prompt
     )
-
 
     ### Answer question ###
     system_prompt = (
@@ -266,9 +161,6 @@ def prepare_rag_llm(
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
 
-    ### Statefully manage chat history ###
-    #store = {}
-
     rag_chain = RunnableWithMessageHistory(
         rag_chain,
         get_session_history,
@@ -276,10 +168,6 @@ def prepare_rag_llm(
         history_messages_key="chat_history",
         output_messages_key="answer",
     )
-
-
-   
-
 
     return rag_chain
 
@@ -289,14 +177,20 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
             store[session_id] = ChatMessageHistory()
         return store[session_id]
 
-def generate_answer(question):
+def generate_answer(question, session_id):
+  answer = "An error has occured"
+
+  if session_id == "":
+        answer = "Please insert your name"
+        doc_source = ["no source"]
+  else:
     response = st.session_state.conversation.invoke({"input": question},
     config={
-    "configurable": {"session_id": st.session_state.session_id}})
+    "configurable": {"session_id": session_id}})
     answer = response["answer"]
     explanation = response["context"]
     doc_source = {}
     for d in explanation:
       doc_source["Page " + str(d.metadata["page"])] = [d.page_content, d.metadata["source"]]
     
-    return answer, doc_source 
+  return answer, doc_source 
