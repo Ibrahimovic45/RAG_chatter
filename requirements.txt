@@ -2,7 +2,7 @@
 streamlit == 1.37.0
 langchain == 0.2.11
 faiss-cpu == 1.8.0.post1
-faiss-gpu == 1.7.2
+#faiss-gpu == 1.7.2
 sentence-transformers==2.2.2 
 InstructorEmbedding == 1.0.1
 pypdf == 4.3.1
