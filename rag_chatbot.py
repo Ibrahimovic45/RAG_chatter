@@ -2,8 +2,10 @@ import streamlit as st
 import os
 from pages.backend import rag_functions
 import random
+from google.cloud.storage import Client, transfer_manager
+import shutil
+import atexit
 
-from streamlit.runtime.state import session_state
 
 if "session_id" in st.session_state:
      session_id_saved = st.session_state.session_id
@@ -13,50 +15,40 @@ else:
 st.cache_data.clear()
 rag_functions.retriever.clear()
 
+# Create this folder locally
+if not os.path.exists("data"):
+  os.makedirs("data")
 
-for key in st.session_state.keys():
-  del st.session_state[key]
+
+bucket, blob_names, new_blob_names   = rag_functions.cloud()
 
 st.title("Chatbot")
-
+ 
 with st.expander("Username and sources"):
   row_1 = st.columns(2)
   with row_1[0]:
-            vector_store_list = os.listdir("vector store/")
+            
+            vector_store_list = list(set(new_blob_names)) + [d for d in os.listdir("data") if os.path.isdir(os.path.join("data", d))]
             default_choice = (
                 vector_store_list.index('Harry_Potter_1')
                 if 'Harry_Potter_1' in vector_store_list
                 else 0
             )
+
             existing_vector_store = st.selectbox("Vector Store", vector_store_list, default_choice)
+           
   with row_1[0]:
             if session_id_saved != "":
                 value = session_id_saved
             else:
                 value = ""
             session_id = st.text_input("Username", value=value) 
-            os.environ["session_id"] = session_id                
+            os.environ["session_id"] = session_id    
+              
 
 # Setting the LLM
-with st.expander("Setting the LLM"):
-    st.markdown("This page is used to have a chat with the uploaded documents")
-    with st.form("setting"):
-        row_1 = st.columns(2)
-        with row_1[0]:
-            llm_model = st.text_input("LLM model", value="meta-llama/Meta-Llama-3-8B-Instruct") #tiiuae/falcon-7b-instruct
-
-        with row_1[1]:
-            instruct_embeddings = st.text_input("Instruct Embeddings", value="sentence-transformers/all-mpnet-base-v2")#hkunlp/instructor-xl
-
-        row_2 = st.columns(2)
-        
-        with row_2[0]: 
-            temperature = st.number_input("Temperature", value=1.0, step=0.1)
-
-        with row_2[1]: 
-            max_length = st.number_input("Maximum character length", value=500, step=1)
-
-        create_chatbot = st.form_submit_button("Create chatbot")
+llm_model = "meta-llama/Meta-Llama-3-8B-Instruct"
+instruct_embeddings = "sentence-transformers/all-mpnet-base-v2" #hkunlp/instructor-xl
 
 
 # Prepare the LLM model
@@ -64,9 +56,11 @@ if "conversation" not in st.session_state:
     st.session_state.conversation = None
 
 if session_id:
+    rag_functions.downloader(bucket, blob_names, existing_vector_store)
+
     st.session_state.session_id = session_id
-    st.session_state.conversation = rag_functions.prepare_rag_llm(llm_model,
-    instruct_embeddings, existing_vector_store, temperature, max_length)
+    st.session_state.conversation = rag_functions.prepare_rag_llm( llm_model, 
+    instruct_embeddings, existing_vector_store) #removed , temperature, max_length
 
 
 # Chat history
@@ -92,15 +86,27 @@ if question := st.chat_input("Ask a question"):
 
     # Answer the question
     answer, doc_source = rag_functions.generate_answer(question, session_id)
+    
+    new_doc_source = {}
+    for key,content in doc_source.items():
+      if len(content[0]) > 100:
+          truncated_text = content[0][:200] + "..."
+      else:
+          truncated_text = content[0]
+      new_doc_source[key] = truncated_text
+
     with st.chat_message("assistant"):
         st.write(answer)
     # Append assistant answer to history
     st.session_state.history.append({"role": "assistant", "content": answer})
 
     # Append the document sources
-    st.session_state.source.append({"question": question, "answer": answer, "document": doc_source})
+    st.session_state.source.append({"question": question, "answer": answer, "document": new_doc_source})
 
 
 # Source documents
 with st.expander("Source documents"):
     st.write(st.session_state.source)
+
+#rag_functions.cleanup()
+
