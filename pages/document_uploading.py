@@ -3,7 +3,7 @@ import os
 from pages.backend import rag_functions
 
 
-bucket, blob_names, new_blob_names   = rag_functions.cloud() 
+#bucket, blob_names, new_blob_names   = rag_functions.cloud() 
 
 st.title("Document Uploading")
 st.markdown("This page is used to upload the documents as the custom knowledge for the chatbot.")
@@ -31,7 +31,8 @@ with st.form("document_input"):
     row_2 = st.columns(2)
     with row_2[0]:
         # List the existing vector stores
-        vector_store_list = new_blob_names
+        #vector_store_list = new_blob_names
+        vector_store_list = os.listdir("vector store")
         vector_store_list = ["<New>"] + vector_store_list
         
         existing_vector_store = st.selectbox(
