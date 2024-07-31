@@ -23,11 +23,32 @@ import getpass
 import os
 from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader
 import tempfile
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 import re
 import random
+from st_files_connection import FilesConnection
+from google.cloud import storage
+from google.cloud.storage import Client, transfer_manager
+from pathlib import Path
+import shutil
 
 store = {}
+
+def cleanup():
+    #global os.path("data")
+    if os.path.exists("data"):
+        shutil.rmtree("data")
+
+def cloud():
+  storage_client = Client()
+  bucket = storage_client.bucket("rag_chat_bucket_2")
+  blob_names = [blob.name for blob in bucket.list_blobs()]
+  new_blob_names = []
+  for name in blob_names:
+      new_name = name.split('/')[-2] 
+      new_blob_names.append(new_name)
+  return bucket, blob_names, new_blob_names    
+
 
 def read_pdf(file):
     bytes_data = file.read()
@@ -56,36 +77,51 @@ def split_doc(document, chunk_size, chunk_overlap):
 
     return split
 
-@st.cache_data(ttl=10, max_entries=5, show_spinner="Loading data...")
+@st.cache_data(ttl=60, max_entries=4, show_spinner="Downloading data...")
+def downloader(_bucket, blob_names, existing_vector_store):    
+
+  #new_blob_names = []
+
+  for name in blob_names:
+    new_blob_name = name.split('/')[-1]
+    if name.split('/')[-2] == existing_vector_store:
+      blob = _bucket.blob(name)
+      blob.download_to_filename("data" + f"/{new_blob_name}")
+      
+
+@st.cache_data(ttl=60, max_entries=1, show_spinner="Loading data...")
 def retriever(existing_vector_store, _instructor_embeddings):
-    load_db = FAISS.load_local(
-                "vector store/" + existing_vector_store,
-                _instructor_embeddings,
-                allow_dangerous_deserialization=True
-    )
-    return load_db
+    
+  
+  load_db = FAISS.load_local("data",
+    _instructor_embeddings, allow_dangerous_deserialization=True
+          )
+  
+  
+  return load_db
+
 
 def embedding_storing(model_name, split, create_new_vs, existing_vector_store, new_vs_name):
     
     if create_new_vs is not None:
         # Load embeddings instructor
         instructor_embeddings = HuggingFaceInstructEmbeddings(
-            model_name=model_name, model_kwargs={"device":"cuda"}
-        ) 
+            model_name=model_name, 
+        ) #model_kwargs={"device":"cuda"}
 
         # Implement embeddings
         st.session_state.db = FAISS.from_documents(split, instructor_embeddings)
 
         if create_new_vs == True:
             # Save db
-            st.session_state.db.save_local("vector store/" + new_vs_name)                      
+            st.session_state.db.save_local("data/" + new_vs_name)                      
             
         else:
             # Load existing db
             st.session_state.load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
             st.session_state.load_db.merge_from(st.session_state.db)
-            st.session_state.load_db.save_local("vector store/" + new_vs_name)
+            st.session_state.load_db.save_local("data/" + new_vs_name)
 
         st.success("The document has been saved.")
 
@@ -107,13 +143,14 @@ def Llm():
 
 #@st.cache_resource
 def prepare_rag_llm(
-    llm_model, instruct_embeddings, vector_store_list, temperature, max_length
-): 
+    llm_model, instruct_embeddings, vector_store_list
+): # removed temperature, max_length
     # Load embeddings instructor
     instructor_embeddings = HuggingFaceInstructEmbeddings(
-        model_name=instruct_embeddings, model_kwargs={"device":"cuda"}
-    )  
+        model_name=instruct_embeddings, 
+    )  #model_kwargs={"device":"cuda"}
     st.session_state.loaded_db = retriever(vector_store_list, instructor_embeddings)
+
 
     # Load LLM
     llm = Llm()   
@@ -182,7 +219,7 @@ def generate_answer(question, session_id):
 
   if session_id == "":
         answer = "Please insert your name"
-        doc_source = ["no source"]
+        doc_source = {"Page":"no source"}
   else:
     response = st.session_state.conversation.invoke({"input": question},
     config={
