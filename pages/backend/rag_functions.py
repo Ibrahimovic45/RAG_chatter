@@ -93,7 +93,7 @@ def downloader(_bucket, blob_names, existing_vector_store):
 def retriever(existing_vector_store, _instructor_embeddings):
     
   
-  load_db = FAISS.load_local("data",
+  load_db = FAISS.load_local(f"vector store/{existing_vector_store}",
     _instructor_embeddings, allow_dangerous_deserialization=True
           )
   
@@ -114,14 +114,14 @@ def embedding_storing(model_name, split, create_new_vs, existing_vector_store, n
 
         if create_new_vs == True:
             # Save db
-            st.session_state.db.save_local("data/" + new_vs_name)                      
+            st.session_state.db.save_local("vector store/" + new_vs_name)                      
             
         else:
             # Load existing db
             st.session_state.load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
             st.session_state.load_db.merge_from(st.session_state.db)
-            st.session_state.load_db.save_local("data/" + new_vs_name)
+            st.session_state.load_db.save_local("vector store/" + new_vs_name)
 
         st.success("The document has been saved.")
 
