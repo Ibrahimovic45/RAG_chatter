@@ -3,7 +3,8 @@ import os
 from pages.backend import rag_functions
 
 
-#bucket, blob_names, new_blob_names   = rag_functions.cloud() 
+bucket, blob_names, new_blob_names   = rag_functions.cloud() 
+
 
 st.title("Document Uploading")
 st.markdown("This page is used to upload the documents as the custom knowledge for the chatbot.")
@@ -14,37 +15,46 @@ with st.form("document_input"):
 
     row_1 = st.columns([2, 1, 1])
     with row_1[0]:
-        instruct_embeddings = st.text_input(
-            "Model Name of the Instruct Embeddings", value="sentence-transformers/all-mpnet-base-v2"
-        )
+        #instruct_embeddings = st.text_input(
+            #"Model Name of the Instruct Embeddings", value="sentence-transformers/all-mpnet-base-v2"
+        #)
+        st.write("Embedding model")
+        st.write("sentence-transformers/all-mpnet-base-v2")
+        instruct_embeddings = "Lajavaness/bilingual-embedding-large" #"sentence-transformers/all-mpnet-base-v2"
     
     with row_1[1]:
-        chunk_size = st.number_input(
-            "Chunk Size", value=200, min_value=0, step=1,
-        )
+        #chunk_size = st.number_input(
+            #"Chunk Size", value=200, min_value=0, step=1,
+        #)
+        chunk_size = 200
+        st.write("Chunk size")
+        st.write("200")
     
     with row_1[2]:
-        chunk_overlap = st.number_input(
-            "Chunk Overlap", value=10, min_value=0, step=1, help="higher that chunk size"
-        )
+        #chunk_overlap = st.number_input(
+            #"Chunk Overlap", value=10, min_value=0, step=1, help="higher that chunk size"
+        #)
+        chunk_overlap = 10
+        st.write("Chunk Overlap")
+        st.write("10")
     
     row_2 = st.columns(2)
     with row_2[0]:
         # List the existing vector stores
-        #vector_store_list = new_blob_names
-        vector_store_list = os.listdir("vector store")
+        vector_store_list = list(set(new_blob_names))
         vector_store_list = ["<New>"] + vector_store_list
-        
+        #vector_store_list = os.listdir("vector store/")
+        #vector_store_list = ["<New>"] + vector_store_list
         existing_vector_store = st.selectbox(
-            "Vector Store to Merge the Knowledge", vector_store_list,
-            help="Which vector store to add the new documents. Choose <New> to create a new vector store."
+            "Document to Merge the Knowledge with", vector_store_list,
+            help="Which document to add the new documents. Choose <New> to create a new document."
         )
 
     with row_2[1]:
         # List the existing vector stores     
         new_vs_name = st.text_input(
-            "New Vector Store Name", value="new_vector_store_name",
-            help="If choose <New> in the dropdown / multiselect box, name the new vector store. Otherwise, fill in the existing vector store to merge."
+            "New Document Name", value="new_vector_store_name",
+            help="If choose <New> in the dropdown / multiselect box, name the new document. Otherwise, fill in the existing document to merge with."
         )
 
     save_button = st.form_submit_button("Save vector store")
@@ -61,7 +71,7 @@ if save_button:
 
     # Split document
     if document.name[-4:] == ".pdf":
-      split = document1
+      split = document1 #in place of just document1
     else:
       split = rag_functions.split_doc(document, chunk_size, chunk_overlap)
 
@@ -76,6 +86,8 @@ if save_button:
         st.error("Check the 'Vector Store to Merge the Knowledge' and 'New Vector Store Name'")
     
     # Embeddings and storing
+    rag_functions.downloader(bucket, blob_names, existing_vector_store)
+
     rag_functions.embedding_storing(
         instruct_embeddings, split, create_new_vs, 
         existing_vector_store,new_vs_name
