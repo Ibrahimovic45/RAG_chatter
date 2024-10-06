@@ -1,6 +1,6 @@
 # app/Dockerfile
 
-FROM python:3.9-slim
+FROM pytorch/pytorch:2.4.0-cuda11.8-cudnn9-devel 
 
 WORKDIR /RAG_chatter-main
 
@@ -13,7 +13,13 @@ RUN apt-get update && apt-get install -y \
 
 COPY . ./
 
-RUN pip3 install -r requirements.txt
+RUN pip3 install --default-timeout=100 -r requirements.txt
+
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+
+RUN export MAX_JOBS=32
+RUN pip3 install flash_attn==2.6.3 --no-build-isolation
 
 EXPOSE 8080
 

@@ -20,7 +20,7 @@ if not os.path.exists("data"):
   os.makedirs("data")
 
 
-#bucket, blob_names, new_blob_names   = rag_functions.cloud()
+bucket, blob_names, new_blob_names   = rag_functions.cloud()
 
 st.title("Chatbot")
  
@@ -28,10 +28,10 @@ with st.expander("Username and sources"):
   row_1 = st.columns(2)
   with row_1[0]:
             
-            #vector_store_list = list(set(new_blob_names)) + [d for d in os.listdir("data") if os.path.isdir(os.path.join("data", d))]
-            vector_store_list = os.listdir("vector store")
+            vector_store_list = list(set(new_blob_names)) + [d for d in os.listdir("data") if os.path.isdir(os.path.join("data", d))]
+            #vector_store_list = os.listdir("vector store")
             default_choice = (
-                vector_store_list.index('Harry_Potter_1')
+                vector_store_list.index('Harry_Potter_1') #Harry_Potter_1
                 if 'Harry_Potter_1' in vector_store_list
                 else 0
             )
@@ -49,7 +49,7 @@ with st.expander("Username and sources"):
 
 # Setting the LLM
 llm_model = "meta-llama/Meta-Llama-3-8B-Instruct"
-instruct_embeddings = "sentence-transformers/all-mpnet-base-v2" #hkunlp/instructor-xl
+instruct_embeddings = "Lajavaness/bilingual-embedding-large" #"Alibaba-NLP/gte-Qwen2-1.5B-instruct"  #"sentence-transformers/all-mpnet-base-v2" #hkunlp/instructor-xl
 
 
 # Prepare the LLM model
@@ -57,7 +57,9 @@ if "conversation" not in st.session_state:
     st.session_state.conversation = None
 
 if session_id:
-    #rag_functions.downloader(bucket, blob_names, existing_vector_store)
+    #if not os.path.exists("data/" + existing_vector_store):
+      #os.makedirs("data/" + existing_vector_store)
+    rag_functions.downloader(bucket, blob_names, existing_vector_store)
 
     st.session_state.session_id = session_id
     st.session_state.conversation = rag_functions.prepare_rag_llm( llm_model, 
