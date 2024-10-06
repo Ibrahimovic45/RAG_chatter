@@ -31,6 +31,10 @@ from google.cloud import storage
 from google.cloud.storage import Client, transfer_manager
 from pathlib import Path
 import shutil
+from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEmbeddings
+from transformers import AutoModel
+
 
 store = {}
 
@@ -54,9 +58,20 @@ def read_pdf(file):
     bytes_data = file.read()
     with NamedTemporaryFile(delete=False) as tmp:  # open a named temporary file
       tmp.write(bytes_data)                      # write data from the uploaded file into it
-      document = PyPDFLoader(tmp.name).load_and_split()        # <---- now it works!
+      document = PyPDFLoader(tmp.name).load_and_split()        # <---- now it works! #instead of load_and_split
     os.remove(tmp.name)                            # remove temp file
     return document
+
+def split_pdf(document, chunk_size, chunk_overlap):
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+    split = splitter.split_documents(document) #in place of split_text
+    #split = splitter.create_documents(split)
+
+    return split
 
 
 def read_txt(file):
@@ -86,17 +101,19 @@ def downloader(_bucket, blob_names, existing_vector_store):
     new_blob_name = name.split('/')[-1]
     if name.split('/')[-2] == existing_vector_store:
       blob = _bucket.blob(name)
-      blob.download_to_filename("data" + f"/{new_blob_name}")
+      
+      blob.download_to_filename("data/" +  f"/{new_blob_name}")
       
 
 @st.cache_data(ttl=60, max_entries=1, show_spinner="Loading data...")
 def retriever(existing_vector_store, _instructor_embeddings):
-    
-  
-  load_db = FAISS.load_local(f"vector store/{existing_vector_store}",
-    _instructor_embeddings, allow_dangerous_deserialization=True
-          )
-  
+  if not os.path.exists("data/" + existing_vector_store):
+    load_db = FAISS.load_local( "data",
+  _instructor_embeddings, allow_dangerous_deserialization=True)
+  else:
+    load_db = FAISS.load_local("data/" + existing_vector_store,
+  _instructor_embeddings, allow_dangerous_deserialization=True)
+
   
   return load_db
 
@@ -105,23 +122,27 @@ def embedding_storing(model_name, split, create_new_vs, existing_vector_store, n
     
     if create_new_vs is not None:
         # Load embeddings instructor
-        instructor_embeddings = HuggingFaceInstructEmbeddings(
-            model_name=model_name, 
-        ) #model_kwargs={"device":"cuda"}
+        #instructor_embeddings = HuggingFaceInstructEmbeddings(
+            #model_name=model_name,  trust_remote_code=True
+        #) #model_kwargs={"device":"cuda"} model_kwargs={"trust_remote_code":True}
+
+        instructor_embeddings = HuggingFaceEmbeddings(model_name=model_name,
+         model_kwargs={"trust_remote_code":True})
+        #model_kwargs={"trust_remote_code":True, "device":"cuda"})
 
         # Implement embeddings
         st.session_state.db = FAISS.from_documents(split, instructor_embeddings)
 
         if create_new_vs == True:
             # Save db
-            st.session_state.db.save_local("vector store/" + new_vs_name)                      
+            st.session_state.db.save_local("data/" + new_vs_name)                      
             
         else:
             # Load existing db
             st.session_state.load_db = retriever(existing_vector_store, instructor_embeddings)
             # Merge two DBs and save
             st.session_state.load_db.merge_from(st.session_state.db)
-            st.session_state.load_db.save_local("vector store/" + new_vs_name)
+            st.session_state.load_db.save_local("data/" + new_vs_name)
 
         st.success("The document has been saved.")
 
@@ -135,7 +156,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 def Llm():
   os.environ["GROQ_API_KEY"] = st.secrets["token"]
   llm = ChatGroq(model="llama3-8b-8192",
-  temperature=0.7,
+  temperature=0.7, #0.7
   max_tokens=2000
   )
   return llm
@@ -146,10 +167,16 @@ def prepare_rag_llm(
     llm_model, instruct_embeddings, vector_store_list
 ): # removed temperature, max_length
     # Load embeddings instructor
-    instructor_embeddings = HuggingFaceInstructEmbeddings(
-        model_name=instruct_embeddings, 
-    )  #model_kwargs={"device":"cuda"}
+    #instructor_embeddings = HuggingFaceInstructEmbeddings(
+        #model_name=instruct_embeddings, trust_remote_code=True 
+    #)  #model_kwargs={"device":"cuda"} model_kwargs={"trust_remote_code":True}
+    
+    instructor_embeddings = HuggingFaceEmbeddings(model_name=instruct_embeddings,
+    model_kwargs={"trust_remote_code":True}) 
+    #model_kwargs={"trust_remote_code":True, "device":"cuda"})
+
     st.session_state.loaded_db = retriever(vector_store_list, instructor_embeddings)
+    
 
 
     # Load LLM
@@ -173,7 +200,7 @@ def prepare_rag_llm(
     )
     history_aware_retriever = create_history_aware_retriever(
         llm, st.session_state.loaded_db.as_retriever(), contextualize_q_prompt
-    )
+    ) 
 
     ### Answer question ###
     system_prompt = (
