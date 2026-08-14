@@ -85,10 +85,6 @@ Or open the repo in Codespaces / devcontainer: the devcontainer config (`.devcon
 - Make sure the Groq token is available in Streamlit secrets before the app starts; otherwise the LLM initialization will fail.
 - The downloader writes into `data/` using blob names; if multiple collections share names there may be collisions. The code attempts to put vector-store folders under `data/<name>/` when saving FAISS stores.
 - The repository mixes Jupyter notebooks (majority language detected) with the Streamlit app code — notebooks may contain experiments and examples but the runnable app is `rag_chatbot.py`.
-
-## Contributing / next steps
-
-- If you want to remove the dependency on GCS, modify `pages/backend/rag_functions.downloader()` to read from a local path or make the bucket name configurable via env var.
 - If you'd like a minimal CPU-only requirements file or a simplified Dockerfile, I can prepare a trimmed `requirements_cpu.txt` and a Dockerfile adjusted for CPU-only usage.
 
 ---
